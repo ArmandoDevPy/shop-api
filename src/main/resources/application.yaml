@@ -4,8 +4,8 @@ server:
 spring:
   datasource:
     url: jdbc:mysql://localhost:3306/mysql_shop?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-    username: root
-    password: 2611
+    username: YOUR_DB_USER
+    password: YOUR_DB_PASSWORD
 
   jpa:
     hibernate:
@@ -17,5 +17,5 @@ spring:
 
 app:
   jwt:
-    secret: "clave-super-larga-minimo-32-caracteres-para-jwt-123456"
+    secret: YOUR_JWT_SECRET_32_CHARSET
     expiration-ms: 3600000

@@ -14,7 +14,7 @@ import java.util.Date;
 @Service
 public class JwtService {
 
-    // ✅ (>= 32 bytes para HS256)
+    // (>= 32 bytes para HS256)
     private static final String SECRET =
             "super-secret-key-for-shop-api-super-secret-key";
 
@@ -24,22 +24,22 @@ public class JwtService {
         return Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
     }
 
-    // ✅ Generar token
+    // Generar token
     public String generateToken(UserDetails user) {
         return Jwts.builder()
-                .subject(user.getUsername()) // ✅ subject estándar
+                .subject(user.getUsername()) // subject estándar
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + EXPIRATION_MS))
-                .signWith(getSigningKey())   // ✅ JJWT 0.12+ OK
+                .signWith(getSigningKey())   // JJWT 0.12+ OK
                 .compact();
     }
 
-    // ✅ Extraer subject (email)
+    // Extraer subject (email)
     public String extractSubject(String token) {
         return extractAllClaims(token).getSubject();
     }
 
-    // ✅ Validar token
+    // Validar token
     public boolean isTokenValid(String token, UserDetails userDetails) {
         try {
             String subject = extractSubject(token);

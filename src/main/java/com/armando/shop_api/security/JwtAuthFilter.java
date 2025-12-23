@@ -25,7 +25,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         this.userDetailsService = userDetailsService;
     }
 
-    // ✅ Opcional pero recomendado: no filtrar rutas públicas
+    // Opcional pero recomendado: no filtrar rutas públicas
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
@@ -62,7 +62,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-                // ✅ si es inválido, NO autenticar (deja que Security responda 401 si aplica)
+                // si es inválido, NO autenticar (deja que Security responda 401 si aplica)
                 if (!jwtService.isTokenValid(token, userDetails)) {
                     SecurityContextHolder.clearContext();
                     filterChain.doFilter(request, response);

@@ -32,16 +32,16 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         return http
-                // ✅ API REST con JWT → CSRF off
+                // API REST con JWT → CSRF off
                 .csrf(csrf -> csrf.disable())
 
-                // ✅ CORS (importante si consumirás desde frontend)
+                // CORS (importante si consumirás desde frontend)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-                // ✅ JWT → Stateless
+                // JWT → Stateless
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // ✅ Respuestas claras para 401/403
+                // Respuestas claras para 401/403
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -54,7 +54,7 @@ public class SecurityConfig {
                             response.getWriter().write("{\"error\":\"Forbidden\"}");
                         }))
 
-                // ✅ Rutas públicas / privadas
+                // Rutas públicas / privadas
                 .authorizeHttpRequests(auth -> auth
                         // preflight de CORS
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -62,10 +62,10 @@ public class SecurityConfig {
                         // auth endpoints
                         .requestMatchers("/auth/**").permitAll()
 
-                        // ✅ Products públicos SOLO GET
+                        // Products públicos SOLO GET
                         .requestMatchers(HttpMethod.GET, "/products", "/products/*").permitAll()
 
-                        // ✅ Products: SOLO ADMIN puede crear/editar/eliminar
+                        // Products: SOLO ADMIN puede crear/editar/eliminar
                         .requestMatchers(HttpMethod.POST, "/products", "/products/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/products/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/products/**").hasRole("ADMIN")
@@ -79,29 +79,29 @@ public class SecurityConfig {
                         // todo lo demás requiere JWT
                         .anyRequest().authenticated())
 
-                // ✅ Desactivamos métodos que no usaremos
+                // Desactivamos métodos que no usaremos
                 .httpBasic(basic -> basic.disable())
                 .formLogin(form -> form.disable())
 
-                // ✅ Filtro JWT antes del filtro de login clásico
+                // Filtro JWT antes del filtro de login clásico
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
 
                 .build();
     }
 
-    // ✅ Password hashing
+    // Password hashing
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // ✅ Para AuthService login con AuthenticationManager
+    // Para AuthService login con AuthenticationManager
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
-    // ✅ Configuración CORS (ajusta origins según tu caso)
+    // Configuración CORS (ajusta origins según tu caso)
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();

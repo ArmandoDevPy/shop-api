@@ -27,7 +27,7 @@ public class OrderController {
         return orderService.create(req, auth.getName());
     }
 
-    // 🔒 Actualizar mi orden
+    // Actualizar mi orden
     @PutMapping("/{id}")
     public OrderResponse update(
             @PathVariable Long id,
@@ -36,20 +36,20 @@ public class OrderController {
         return orderService.update(id, req, auth.getName());
     }
 
-    // 🔒 Eliminar mi orden
+    // Eliminar mi orden
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id, Authentication auth) {
         orderService.delete(id, auth.getName());
     }
 
-    // 🔒 Listar mis órdenes
+    // Listar mis órdenes
     @GetMapping
     public List<OrderResponse> listMine(Authentication auth) {
         return orderService.listMine(auth.getName());
     }
 
-    // 🔒 Ver mi orden por id
+    // Ver mi orden por id
     @GetMapping("/{id}")
     public OrderResponse getMine(@PathVariable Long id, Authentication auth) {
         return orderService.getMine(id, auth.getName());

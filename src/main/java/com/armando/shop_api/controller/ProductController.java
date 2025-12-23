@@ -20,19 +20,19 @@ public class ProductController {
         this.service = service;
     }
 
-    // ✅ GET público
+    // GET público
     @GetMapping
     public List<ProductResponse> list() {
         return service.list();
     }
 
-    // ✅ GET público
+    // GET público
     @GetMapping("/{id}")
     public ProductResponse get(@PathVariable Long id) {
         return service.get(id);
     }
 
-    // 🔒 SOLO ADMIN
+    // SOLO ADMIN
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<ProductResponse> create(@Valid @RequestBody ProductRequest req) {
@@ -40,14 +40,14 @@ public class ProductController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    // 🔒 SOLO ADMIN
+    // SOLO ADMIN
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ProductResponse update(@PathVariable Long id, @Valid @RequestBody ProductRequest req) {
         return service.update(id, req);
     }
 
-    // 🔒 SOLO ADMIN
+    // SOLO ADMIN
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
