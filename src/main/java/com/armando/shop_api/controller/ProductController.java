@@ -1,10 +1,10 @@
 package com.armando.shop_api.controller;
 
-import com.armando.shop_api.dto.ProductRequest;
-import com.armando.shop_api.dto.ProductResponse;
-import com.armando.shop_api.service.ProductService;
+import com.armando.shop_api.dto.*;
+import com.armando.shop_api.entity.Product;
+import com.armando.shop_api.repository.ProductRepository;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,36 +13,64 @@ import java.util.List;
 @RequestMapping("/products")
 public class ProductController {
 
-    private final ProductService service;
+    private final ProductRepository productRepository;
 
-    public ProductController(ProductService service) {
-        this.service = service;
+    public ProductController(ProductRepository productRepository) {
+        this.productRepository = productRepository;
     }
 
+    // ✅ GET público
     @GetMapping
     public List<ProductResponse> list() {
-        return service.list();
+        return productRepository.findAll().stream()
+                .map(p -> new ProductResponse(p.getId(), p.getName(), p.getPrice(), p.getStock()))
+                .toList();
     }
 
+    // ✅ GET público (si lo tienes)
     @GetMapping("/{id}")
     public ProductResponse get(@PathVariable Long id) {
-        return service.get(id);
+        var p = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+        return new ProductResponse(p.getId(), p.getName(), p.getPrice(), p.getStock());
     }
 
+    // 🔒 POST protegido
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public ProductResponse create(@Valid @RequestBody ProductRequest req) {
-        return service.create(req);
+    public ResponseEntity<ProductResponse> create(@Valid @RequestBody ProductCreateRequest req) {
+        Product p = new Product();
+        p.setName(req.getName());
+        p.setPrice(req.getPrice());
+        p.setStock(req.getStock());
+
+        p = productRepository.save(p);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ProductResponse(p.getId(), p.getName(), p.getPrice(), p.getStock()));
     }
 
+    // 🔒 PUT protegido
     @PutMapping("/{id}")
-    public ProductResponse update(@PathVariable Long id, @Valid @RequestBody ProductRequest req) {
-        return service.update(id, req);
+    public ProductResponse update(@PathVariable Long id, @Valid @RequestBody ProductUpdateRequest req) {
+        var p = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        p.setName(req.getName());
+        p.setPrice(req.getPrice());
+        p.setStock(req.getStock());
+
+        p = productRepository.save(p);
+
+        return new ProductResponse(p.getId(), p.getName(), p.getPrice(), p.getStock());
     }
 
+    // 🔒 DELETE protegido
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
-        service.delete(id);
+        if (!productRepository.existsById(id)) {
+            throw new RuntimeException("Product not found");
+        }
+        productRepository.deleteById(id);
     }
 }

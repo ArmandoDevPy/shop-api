@@ -61,6 +61,9 @@ public class SecurityConfig {
                         // auth endpoints
                         .requestMatchers("/auth/**").permitAll()
 
+                        // ✅ Products públicos SOLO en GET
+                        .requestMatchers(HttpMethod.GET, "/products", "/products/*").permitAll()
+
                         // si usas swagger (opcional, déjalo si lo tienes)
                         .requestMatchers(
                                 "/swagger-ui/**",
@@ -98,11 +101,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
 
-        // IMPORTANTE:
-        // Si luego lo consumes desde React/Angular/Vue, pon aquí tu dominio
-        // Ej: http://localhost:3000 o tu dominio real
         cfg.setAllowedOriginPatterns(List.of("*"));
-
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         cfg.setAllowedHeaders(List.of("*"));
         cfg.setAllowCredentials(true);
