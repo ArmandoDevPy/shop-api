@@ -1,6 +1,7 @@
 package com.armando.shop_api.entity;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
 import lombok.Getter;
 import lombok.Setter;
@@ -8,25 +9,29 @@ import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 @Setter
 @MappedSuperclass
+@EntityListeners(AuditingEntityListener.class)
 public abstract class AuditableEntity {
 
-    @CreatedBy
-    @Column(updatable = false)
-    private String createdBy;
-
     @CreatedDate
-    @Column(updatable = false)
-    private LocalDateTime createdAt;
-
-    @LastModifiedBy
-    private String updatedBy;
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
 
     @LastModifiedDate
-    private LocalDateTime updatedAt;
+    @Column(nullable = false)
+    private Instant updatedAt;
+
+    @CreatedBy
+    @Column(nullable = false, updatable = false, length = 190)
+    private String createdBy;
+
+    @LastModifiedBy
+    @Column(nullable = false, length = 190)
+    private String updatedBy;
 }

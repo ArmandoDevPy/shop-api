@@ -12,13 +12,13 @@ import java.util.List;
 @Builder
 @Entity
 @Table(name = "orders")
-@EntityListeners(org.springframework.data.jpa.domain.support.AuditingEntityListener.class)
 public class Order extends AuditableEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -26,5 +26,6 @@ public class Order extends AuditableEntity {
     private List<OrderItem> items = new ArrayList<>();
 
     @Column(nullable = false, precision = 12, scale = 2)
-    private BigDecimal total;
+    @Builder.Default
+    private BigDecimal total = BigDecimal.ZERO;
 }
