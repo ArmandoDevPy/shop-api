@@ -8,14 +8,14 @@ import java.math.BigDecimal;
 
 @Getter @Setter
 public class ProductRequest {
-
     @NotBlank
     private String name;
 
     @NotNull
-    @DecimalMin("0.00")
+    @DecimalMin(value = "0.0", inclusive = true)
     private BigDecimal price;
 
+    @NotNull
     @Min(0)
-    private int stock;
+    private Integer stock;
 }

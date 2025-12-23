@@ -5,59 +5,59 @@ import com.armando.shop_api.dto.ProductResponse;
 import com.armando.shop_api.entity.Product;
 import com.armando.shop_api.repository.ProductRepository;
 import com.armando.shop_api.service.ProductService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
 
-    private final ProductRepository productRepository;
+    private final ProductRepository repo;
 
-    @Override
-    public ProductResponse create(ProductRequest req) {
-        Product p = new Product();
-        p.setName(req.getName());
-        p.setPrice(req.getPrice());
-        p.setStock(req.getStock());
-        p = productRepository.save(p);
-        return toResponse(p);
+    public ProductServiceImpl(ProductRepository repo) {
+        this.repo = repo;
+    }
+
+    private static ProductResponse toRes(Product p) {
+        return new ProductResponse(p.getId(), p.getName(), p.getPrice(), p.getStock());
     }
 
     @Override
     public List<ProductResponse> list() {
-        return productRepository.findAll().stream().map(this::toResponse).toList();
+        return repo.findAll().stream().map(ProductServiceImpl::toRes).toList();
     }
 
     @Override
     public ProductResponse get(Long id) {
-        Product p = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
-        return toResponse(p);
+        var p = repo.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
+        return toRes(p);
     }
 
     @Override
-    public ProductResponse update(Long id, ProductRequest req) {
-        Product p = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+    @Transactional
+    public ProductResponse create(ProductRequest req) {
+        var p = new Product();
         p.setName(req.getName());
         p.setPrice(req.getPrice());
         p.setStock(req.getStock());
-        p = productRepository.save(p);
-        return toResponse(p);
+        return toRes(repo.save(p));
     }
 
     @Override
-    public void delete(Long id) {
-        if (!productRepository.existsById(id)) {
-            throw new RuntimeException("Product not found");
-        }
-        productRepository.deleteById(id);
+    @Transactional
+    public ProductResponse update(Long id, ProductRequest req) {
+        var p = repo.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
+        p.setName(req.getName());
+        p.setPrice(req.getPrice());
+        p.setStock(req.getStock());
+        return toRes(repo.save(p));
     }
 
-    private ProductResponse toResponse(Product p) {
-        return new ProductResponse(p.getId(), p.getName(), p.getPrice(), p.getStock());
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        if (!repo.existsById(id)) throw new RuntimeException("Product not found");
+        repo.deleteById(id);
     }
 }
