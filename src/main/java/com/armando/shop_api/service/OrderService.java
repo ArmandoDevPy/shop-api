@@ -9,4 +9,5 @@ public interface OrderService {
     OrderResponse create(OrderCreateRequest req, String userEmail);
     List<OrderResponse> listMine(String userEmail);
     OrderResponse getMine(Long id, String userEmail);
+    OrderResponse update(Long id, OrderCreateRequest req, String userEmail);
 }

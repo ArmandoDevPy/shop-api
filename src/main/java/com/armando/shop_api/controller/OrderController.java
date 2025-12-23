@@ -27,6 +27,15 @@ public class OrderController {
         return orderService.create(req, auth.getName());
     }
 
+    // 🔒 Actualizar mi orden
+    @PutMapping("/{id}")
+    public OrderResponse update(
+            @PathVariable Long id,
+            @Valid @RequestBody OrderCreateRequest req,
+            Authentication auth) {
+        return orderService.update(id, req, auth.getName());
+    }
+
     // 🔒 Listar mis órdenes
     @GetMapping
     public List<OrderResponse> listMine(Authentication auth) {

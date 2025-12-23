@@ -2,11 +2,14 @@ package com.armando.shop_api.service.impl;
 
 import com.armando.shop_api.dto.*;
 import com.armando.shop_api.entity.*;
+import com.armando.shop_api.exception.BadRequestException;
+import com.armando.shop_api.exception.ForbiddenException;
 import com.armando.shop_api.exception.NotFoundException;
 import com.armando.shop_api.repository.*;
 import com.armando.shop_api.service.OrderService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.armando.shop_api.dto.OrderItemCreateRequest;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -28,6 +31,9 @@ public class OrderServiceImpl implements OrderService {
         this.productRepository = productRepository;
     }
 
+    // ======================================================
+    // CREATE ORDER
+    // ======================================================
     @Override
     @Transactional
     public OrderResponse create(OrderCreateRequest req, String userEmail) {
@@ -38,16 +44,16 @@ public class OrderServiceImpl implements OrderService {
         Order order = new Order();
         order.setUser(user);
 
-        // items
-        for (var itemReq : req.getItems()) {
+        for (OrderItemCreateRequest itemReq : req.getItems()) {
+
             Product product = productRepository.findById(itemReq.getProductId())
                     .orElseThrow(() -> new NotFoundException("Product not found"));
 
             int qty = itemReq.getQuantity();
 
-            // (opcional) validar stock
             if (product.getStock() < qty) {
-                throw new IllegalArgumentException("Not enough stock for product: " + product.getName());
+                throw new BadRequestException(
+                        "Not enough stock for product: " + product.getName());
             }
 
             BigDecimal unitPrice = product.getPrice();
@@ -63,7 +69,7 @@ public class OrderServiceImpl implements OrderService {
 
             order.getItems().add(item);
 
-            // (opcional) descontar stock
+            // descontar stock
             product.setStock(product.getStock() - qty);
         }
 
@@ -73,31 +79,97 @@ public class OrderServiceImpl implements OrderService {
         return map(saved);
     }
 
+    // ======================================================
+    // UPDATE ORDER
+    // ======================================================
+    @Override
+    @Transactional
+    public OrderResponse update(Long id, OrderCreateRequest req, String userEmail) {
+
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
+
+        if (!order.getUser().getEmail().equals(userEmail)) {
+            throw new ForbiddenException("You cannot modify this order");
+        }
+
+        // 1️⃣ devolver stock anterior
+        for (OrderItem oldItem : order.getItems()) {
+            Product product = oldItem.getProduct();
+            product.setStock(product.getStock() + oldItem.getQuantity());
+        }
+
+        // 2️⃣ limpiar items
+        order.getItems().clear();
+
+        // 3️⃣ agregar nuevos items
+        for (OrderItemCreateRequest itemReq : req.getItems()) {
+
+            Product product = productRepository.findById(itemReq.getProductId())
+                    .orElseThrow(() -> new NotFoundException("Product not found"));
+
+            int qty = itemReq.getQuantity();
+
+            if (product.getStock() < qty) {
+                throw new BadRequestException(
+                        "Not enough stock for product: " + product.getName());
+            }
+
+            BigDecimal unitPrice = product.getPrice();
+            BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(qty));
+
+            OrderItem item = OrderItem.builder()
+                    .order(order)
+                    .product(product)
+                    .quantity(qty)
+                    .unitPrice(unitPrice)
+                    .subtotal(subtotal)
+                    .build();
+
+            order.getItems().add(item);
+            product.setStock(product.getStock() - qty);
+        }
+
+        order.recalcTotal();
+
+        return map(orderRepository.save(order));
+    }
+
+    // ======================================================
+    // LIST MY ORDERS
+    // ======================================================
     @Override
     @Transactional(readOnly = true)
     public List<OrderResponse> listMine(String userEmail) {
-        // simple: filtrar en memoria (ok para reto). Si quieres pro: query por userEmail.
         return orderRepository.findAll().stream()
                 .filter(o -> o.getUser().getEmail().equals(userEmail))
                 .map(this::map)
                 .toList();
     }
 
+    // ======================================================
+    // GET MY ORDER
+    // ======================================================
     @Override
     @Transactional(readOnly = true)
     public OrderResponse getMine(Long id, String userEmail) {
-        Order o = orderRepository.findById(id)
+
+        Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Order not found"));
 
-        if (!o.getUser().getEmail().equals(userEmail)) {
-            throw new org.springframework.security.access.AccessDeniedException("Forbidden");
+        if (!order.getUser().getEmail().equals(userEmail)) {
+            throw new ForbiddenException("You cannot access this order");
         }
 
-        return map(o);
+        return map(order);
     }
 
-    private OrderResponse map(Order o) {
-        var items = o.getItems().stream()
+    // ======================================================
+    // MAPPER
+    // ======================================================
+    private OrderResponse map(Order order) {
+
+        List<OrderItemResponse> items = order.getItems().stream()
                 .map(i -> new OrderItemResponse(
                         i.getProduct().getId(),
                         i.getProduct().getName(),
@@ -108,16 +180,15 @@ public class OrderServiceImpl implements OrderService {
                 .toList();
 
         return new OrderResponse(
-                o.getId(),
-                o.getUser().getId(),
-                o.getUser().getEmail(),
-                o.getTotal(),
+                order.getId(),
+                order.getUser().getId(),
+                order.getUser().getEmail(),
+                order.getTotal(),
                 items,
-                o.getCreatedAt(),
-                o.getCreatedBy(),
-                o.getUpdatedAt(),
-                o.getUpdatedBy()
+                order.getCreatedAt(),
+                order.getCreatedBy(),
+                order.getUpdatedAt(),
+                order.getUpdatedBy()
         );
     }
 }
-
