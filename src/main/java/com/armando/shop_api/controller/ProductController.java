@@ -6,6 +6,7 @@ import com.armando.shop_api.service.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -31,20 +32,23 @@ public class ProductController {
         return service.get(id);
     }
 
-    // 🔒 POST protegido
+    // 🔒 SOLO ADMIN
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<ProductResponse> create(@Valid @RequestBody ProductRequest req) {
         ProductResponse created = service.create(req);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    // 🔒 PUT protegido
+    // 🔒 SOLO ADMIN
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ProductResponse update(@PathVariable Long id, @Valid @RequestBody ProductRequest req) {
         return service.update(id, req);
     }
 
-    // 🔒 DELETE protegido
+    // 🔒 SOLO ADMIN
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {

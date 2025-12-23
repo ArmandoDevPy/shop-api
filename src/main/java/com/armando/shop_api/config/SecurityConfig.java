@@ -14,9 +14,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.*;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 
 import java.util.List;
 
+@EnableMethodSecurity
 @Configuration
 public class SecurityConfig {
 
@@ -50,8 +52,7 @@ public class SecurityConfig {
                             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                             response.setContentType("application/json");
                             response.getWriter().write("{\"error\":\"Forbidden\"}");
-                        })
-                )
+                        }))
 
                 // ✅ Rutas públicas / privadas
                 .authorizeHttpRequests(auth -> auth
@@ -61,18 +62,22 @@ public class SecurityConfig {
                         // auth endpoints
                         .requestMatchers("/auth/**").permitAll()
 
-                        // ✅ Products públicos SOLO en GET
+                        // ✅ Products públicos SOLO GET
                         .requestMatchers(HttpMethod.GET, "/products", "/products/*").permitAll()
 
-                        // si usas swagger (opcional, déjalo si lo tienes)
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**"
-                        ).permitAll()
+                        // ✅ Products: SOLO ADMIN puede crear/editar/eliminar
+                        .requestMatchers(HttpMethod.POST, "/products", "/products/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/products/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/products/**").hasRole("ADMIN")
+
+                        // orders requiere JWT
+                        .requestMatchers("/orders/**").authenticated()
+
+                        // swagger (si lo usas)
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
 
                         // todo lo demás requiere JWT
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
 
                 // ✅ Desactivamos métodos que no usaremos
                 .httpBasic(basic -> basic.disable())

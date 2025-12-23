@@ -36,6 +36,13 @@ public class OrderController {
         return orderService.update(id, req, auth.getName());
     }
 
+    // 🔒 Eliminar mi orden
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id, Authentication auth) {
+        orderService.delete(id, auth.getName());
+    }
+
     // 🔒 Listar mis órdenes
     @GetMapping
     public List<OrderResponse> listMine(Authentication auth) {
@@ -47,4 +54,5 @@ public class OrderController {
     public OrderResponse getMine(@PathVariable Long id, Authentication auth) {
         return orderService.getMine(id, auth.getName());
     }
+
 }

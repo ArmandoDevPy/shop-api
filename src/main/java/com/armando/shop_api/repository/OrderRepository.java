@@ -3,4 +3,12 @@ package com.armando.shop_api.repository;
 import com.armando.shop_api.entity.Order;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface OrderRepository extends JpaRepository<Order, Long> {}
+import java.util.List;
+import java.util.Optional;
+
+public interface OrderRepository extends JpaRepository<Order, Long> {
+
+    List<Order> findByUserEmailOrderByIdDesc(String email);
+
+    Optional<Order> findByIdAndUserEmail(Long id, String email);
+}

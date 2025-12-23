@@ -1,45 +1,64 @@
 package com.armando.shop_api.security;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Service
 public class JwtService {
 
-    private final SecretKey key;
-    private final long expirationMs;
+    // ✅ (>= 32 bytes para HS256)
+    private static final String SECRET =
+            "super-secret-key-for-shop-api-super-secret-key";
 
-    public JwtService(
-            @Value("${app.jwt.secret}") String secret,
-            @Value("${app.jwt.expiration-ms}") long expirationMs
-    ) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes());
-        this.expirationMs = expirationMs;
+    private static final long EXPIRATION_MS = 1000L * 60 * 60; // 1 hora
+
+    private SecretKey getSigningKey() {
+        return Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(String subject) {
-        var now = new Date();
-        var exp = new Date(now.getTime() + expirationMs);
-
+    // ✅ Generar token
+    public String generateToken(UserDetails user) {
         return Jwts.builder()
-                .subject(subject)
-                .issuedAt(now)
-                .expiration(exp)
-                .signWith(key)
+                .subject(user.getUsername()) // ✅ subject estándar
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + EXPIRATION_MS))
+                .signWith(getSigningKey())   // ✅ JJWT 0.12+ OK
                 .compact();
     }
 
+    // ✅ Extraer subject (email)
     public String extractSubject(String token) {
+        return extractAllClaims(token).getSubject();
+    }
+
+    // ✅ Validar token
+    public boolean isTokenValid(String token, UserDetails userDetails) {
+        try {
+            String subject = extractSubject(token);
+            return subject.equals(userDetails.getUsername()) && !isTokenExpired(token);
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    // 🔍 Helpers internos
+    private boolean isTokenExpired(String token) {
+        return extractAllClaims(token).getExpiration().before(new Date());
+    }
+
+    private Claims extractAllClaims(String token) {
         return Jwts.parser()
-                .verifyWith(key)
+                .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
+                .getPayload();
     }
 }

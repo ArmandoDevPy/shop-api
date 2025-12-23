@@ -13,7 +13,7 @@ public class UserPrincipal implements UserDetails {
     private final String fullName;
     private final String email;
     private final String passwordHash;
-    private final String role; // ejemplo: "USER" o "ADMIN"
+    private final String role; // "USER" o "ADMIN"
 
     public UserPrincipal(Long id, String fullName, String email, String passwordHash, String role) {
         this.id = id;
@@ -30,9 +30,14 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Spring espera "ROLE_..."
-        String normalized = role.startsWith("ROLE_") ? role : "ROLE_" + role;
-        return List.of(new SimpleGrantedAuthority(normalized));
+        String r = role;
+
+        // Por si en BD guardaste "ROLE_ADMIN" (evita ROLE_ROLE_ADMIN)
+        if (r != null && r.startsWith("ROLE_")) {
+            return List.of(new SimpleGrantedAuthority(r));
+        }
+
+        return List.of(new SimpleGrantedAuthority("ROLE_" + r)); // ROLE_ADMIN / ROLE_USER
     }
 
     @Override

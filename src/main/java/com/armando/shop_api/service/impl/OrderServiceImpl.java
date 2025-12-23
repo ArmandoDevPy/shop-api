@@ -9,7 +9,6 @@ import com.armando.shop_api.repository.*;
 import com.armando.shop_api.service.OrderService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.armando.shop_api.dto.OrderItemCreateRequest;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -31,9 +30,6 @@ public class OrderServiceImpl implements OrderService {
         this.productRepository = productRepository;
     }
 
-    // ======================================================
-    // CREATE ORDER
-    // ======================================================
     @Override
     @Transactional
     public OrderResponse create(OrderCreateRequest req, String userEmail) {
@@ -44,16 +40,19 @@ public class OrderServiceImpl implements OrderService {
         Order order = new Order();
         order.setUser(user);
 
-        for (OrderItemCreateRequest itemReq : req.getItems()) {
-
+        // items
+        for (var itemReq : req.getItems()) {
             Product product = productRepository.findById(itemReq.getProductId())
                     .orElseThrow(() -> new NotFoundException("Product not found"));
 
             int qty = itemReq.getQuantity();
 
+            if (qty <= 0) {
+                throw new BadRequestException("Quantity must be > 0");
+            }
+
             if (product.getStock() < qty) {
-                throw new BadRequestException(
-                        "Not enough stock for product: " + product.getName());
+                throw new BadRequestException("Not enough stock for product: " + product.getName());
             }
 
             BigDecimal unitPrice = product.getPrice();
@@ -79,9 +78,22 @@ public class OrderServiceImpl implements OrderService {
         return map(saved);
     }
 
-    // ======================================================
-    // UPDATE ORDER
-    // ======================================================
+    @Override
+    @Transactional(readOnly = true)
+    public List<OrderResponse> listMine(String userEmail) {
+        return orderRepository.findByUserEmailOrderByIdDesc(userEmail).stream()
+                .map(this::map)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OrderResponse getMine(Long id, String userEmail) {
+        Order o = orderRepository.findByIdAndUserEmail(id, userEmail)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
+        return map(o);
+    }
+
     @Override
     @Transactional
     public OrderResponse update(Long id, OrderCreateRequest req, String userEmail) {
@@ -89,30 +101,34 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Order not found"));
 
+        // solo el dueño
         if (!order.getUser().getEmail().equals(userEmail)) {
-            throw new ForbiddenException("You cannot modify this order");
+            throw new ForbiddenException("Forbidden");
         }
 
-        // 1️⃣ devolver stock anterior
+        // 1) devolver stock anterior
         for (OrderItem oldItem : order.getItems()) {
-            Product product = oldItem.getProduct();
-            product.setStock(product.getStock() + oldItem.getQuantity());
+            Product p = oldItem.getProduct();
+            p.setStock(p.getStock() + oldItem.getQuantity());
         }
 
-        // 2️⃣ limpiar items
+        // 2) borrar items anteriores (orphanRemoval=true)
         order.getItems().clear();
 
-        // 3️⃣ agregar nuevos items
-        for (OrderItemCreateRequest itemReq : req.getItems()) {
+        // 3) agregar nuevos items
+        for (var itemReq : req.getItems()) {
 
             Product product = productRepository.findById(itemReq.getProductId())
                     .orElseThrow(() -> new NotFoundException("Product not found"));
 
             int qty = itemReq.getQuantity();
 
+            if (qty <= 0) {
+                throw new BadRequestException("Quantity must be > 0");
+            }
+
             if (product.getStock() < qty) {
-                throw new BadRequestException(
-                        "Not enough stock for product: " + product.getName());
+                throw new BadRequestException("Not enough stock for product: " + product.getName());
             }
 
             BigDecimal unitPrice = product.getPrice();
@@ -127,49 +143,40 @@ public class OrderServiceImpl implements OrderService {
                     .build();
 
             order.getItems().add(item);
+
+            // descontar stock nuevo
             product.setStock(product.getStock() - qty);
         }
 
+        // 4) recalcular total
         order.recalcTotal();
 
-        return map(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        return map(saved);
     }
 
-    // ======================================================
-    // LIST MY ORDERS
-    // ======================================================
     @Override
-    @Transactional(readOnly = true)
-    public List<OrderResponse> listMine(String userEmail) {
-        return orderRepository.findAll().stream()
-                .filter(o -> o.getUser().getEmail().equals(userEmail))
-                .map(this::map)
-                .toList();
-    }
-
-    // ======================================================
-    // GET MY ORDER
-    // ======================================================
-    @Override
-    @Transactional(readOnly = true)
-    public OrderResponse getMine(Long id, String userEmail) {
+    @Transactional
+    public void delete(Long id, String userEmail) {
 
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Order not found"));
 
         if (!order.getUser().getEmail().equals(userEmail)) {
-            throw new ForbiddenException("You cannot access this order");
+            throw new ForbiddenException("Forbidden");
         }
 
-        return map(order);
+        // devolver stock
+        for (OrderItem item : order.getItems()) {
+            Product p = item.getProduct();
+            p.setStock(p.getStock() + item.getQuantity());
+        }
+
+        orderRepository.delete(order);
     }
 
-    // ======================================================
-    // MAPPER
-    // ======================================================
-    private OrderResponse map(Order order) {
-
-        List<OrderItemResponse> items = order.getItems().stream()
+    private OrderResponse map(Order o) {
+        var items = o.getItems().stream()
                 .map(i -> new OrderItemResponse(
                         i.getProduct().getId(),
                         i.getProduct().getName(),
@@ -180,15 +187,15 @@ public class OrderServiceImpl implements OrderService {
                 .toList();
 
         return new OrderResponse(
-                order.getId(),
-                order.getUser().getId(),
-                order.getUser().getEmail(),
-                order.getTotal(),
+                o.getId(),
+                o.getUser().getId(),
+                o.getUser().getEmail(),
+                o.getTotal(),
                 items,
-                order.getCreatedAt(),
-                order.getCreatedBy(),
-                order.getUpdatedAt(),
-                order.getUpdatedBy()
+                o.getCreatedAt(),
+                o.getCreatedBy(),
+                o.getUpdatedAt(),
+                o.getUpdatedBy()
         );
     }
 }
