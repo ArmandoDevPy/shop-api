@@ -13,7 +13,6 @@ public class UserController {
 
     @GetMapping("/me")
     public Map<String, Object> me(Authentication authentication) {
-        // Por si Spring no inyecta bien Authentication
         if (authentication == null) {
             authentication = SecurityContextHolder.getContext().getAuthentication();
         }
@@ -21,12 +20,25 @@ public class UserController {
         Map<String, Object> res = new HashMap<>();
         res.put("authNull", authentication == null);
 
-        if (authentication != null) {
-            res.put("name", authentication.getName());
-            res.put("authorities", authentication.getAuthorities()); // puede ser null sin reventar
-            res.put("principalClass", authentication.getPrincipal() != null ? authentication.getPrincipal().getClass().getName() : null);
+        if (authentication == null)
+            return res;
+
+        res.put("name", authentication.getName());
+        res.put("authorities", authentication.getAuthorities());
+        res.put("principalClass", authentication.getPrincipal() != null
+                ? authentication.getPrincipal().getClass().getName()
+                : null);
+
+        Object principal = authentication.getPrincipal();
+
+        if (principal instanceof com.armando.shop_api.security.UserPrincipal p) {
+            res.put("id", p.getId());
+            res.put("fullName", p.getFullName());
+            res.put("email", p.getEmail());
+            res.put("role", p.getRole());
         }
 
         return res;
     }
+
 }

@@ -1,4 +1,4 @@
-package com.armando.shop_api.model.entity;
+package com.armando.shop_api.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;

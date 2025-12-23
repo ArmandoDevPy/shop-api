@@ -1,6 +1,6 @@
 package com.armando.shop_api.repository;
 
-import com.armando.shop_api.model.entity.User;
+import com.armando.shop_api.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

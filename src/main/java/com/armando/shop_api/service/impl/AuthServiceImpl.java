@@ -2,7 +2,7 @@ package com.armando.shop_api.service.impl;
 
 import com.armando.shop_api.dto.*;
 import com.armando.shop_api.exception.BusinessException;
-import com.armando.shop_api.model.entity.User;
+import com.armando.shop_api.entity.User;
 import com.armando.shop_api.repository.UserRepository;
 import com.armando.shop_api.security.JwtService;
 import com.armando.shop_api.service.AuthService;
